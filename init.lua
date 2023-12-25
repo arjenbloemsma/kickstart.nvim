@@ -1,3 +1,5 @@
+require('bloem')
+
 --[[
 
 =====================================================================
@@ -88,7 +90,14 @@ require('lazy').setup({
 
       -- Useful status updates for LSP
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      {
+        "j-hui/fidget.nvim",
+        tag = "legacy",
+        event = "LspAttach",
+        opts = {
+          -- options
+        },
+      },
 
       -- Additional lua configuration, makes nvim stuff amazing!
       'folke/neodev.nvim',
@@ -190,15 +199,6 @@ require('lazy').setup({
   },
 
   {
-    -- Theme inspired by Atom
-    'navarasu/onedark.nvim',
-    priority = 1000,
-    config = function()
-      vim.cmd.colorscheme 'onedark'
-    end,
-  },
-
-  {
     -- Set lualine as statusline
     'nvim-lualine/lualine.nvim',
     -- See `:help lualine.txt`
@@ -219,6 +219,9 @@ require('lazy').setup({
     -- See `:help ibl`
     main = 'ibl',
     opts = {},
+    indent = {
+      char = '┊',
+    },
   },
 
   -- "gc" to comment visual regions/lines
@@ -266,8 +269,33 @@ require('lazy').setup({
   --    Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --
   --    For additional information see: https://github.com/folke/lazy.nvim#-structuring-your-plugins
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
 }, {})
+
+-- AutoSave
+-- /lua/config/autocmds.lua
+
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+  callback = function()
+    local curbuf = vim.api.nvim_get_current_buf()
+    if not vim.api.nvim_buf_get_option(curbuf, "modified") or vim.fn.getbufvar(curbuf, "&modifiable") == 0 then
+      return
+    end
+
+    vim.cmd([[silent! update]])
+  end,
+  pattern = "*",
+  group = vim.api.nvim_create_augroup("bloem-auto-save", { clear = true }),
+})
+
+-- auto-reload files when modified externally
+-- https://unix.stackexchange.com/a/383044
+vim.o.autoread = true
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained" }, {
+  command = "if mode() != 'c' | checktime | endif",
+  pattern = { "*" },
+  group = vim.api.nvim_create_augroup("bloem-auto-read", { clear = true }),
+})
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -276,11 +304,22 @@ require('lazy').setup({
 -- Set highlight on search
 vim.o.hlsearch = false
 
--- Make line numbers default
+-- Make hybrid line numbers default
+vim.wo.relativenumber = true
 vim.wo.number = true
 
--- Enable mouse mode
-vim.o.mouse = 'a'
+-- Don't wrap lines
+vim.wo.wrap = false
+
+-- Turn tabs into spaces
+vim.o.expandtab = true
+
+-- Tab width
+vim.o.tabstop = 3
+vim.o.shiftwidth = 3
+
+-- Disable mouse mode
+-- vim.o.mouse = 'a'
 
 -- Sync clipboard between OS and Neovim.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -300,9 +339,24 @@ vim.o.smartcase = true
 -- Keep signcolumn on by default
 vim.wo.signcolumn = 'yes'
 
+-- Helps to keep our lines at a decent size
+vim.opt.colorcolumn = "80"
+
+-- highlight the current line
+vim.opt.cursorline = false
+
+-- Have a few lines abice and below the cursor
+vim.opt.scrolloff = 8
+
+-- Don't use swap files
+vim.opt.swapfile = false
+
 -- Decrease update time
 vim.o.updatetime = 250
 vim.o.timeoutlen = 300
+
+-- the encoding written to a file
+vim.opt.fileencoding = "utf-8"
 
 -- Set completeopt to have a better completion experience
 vim.o.completeopt = 'menuone,noselect'
@@ -423,7 +477,7 @@ vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = 
 vim.defer_fn(function()
   require('nvim-treesitter.configs').setup {
     -- Add languages to be installed here that you want installed for treesitter
-    ensure_installed = { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'bash' },
+    ensure_installed = { 'lua', 'python', 'css', 'tsx', 'javascript', 'typescript', 'svelte', 'json', 'help', 'vimdoc', 'vim', 'html', 'bash' },
 
     -- Autoinstall languages that are not installed. Defaults to false (but you can change for yourself!)
     auto_install = false,
